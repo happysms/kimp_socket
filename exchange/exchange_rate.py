@@ -1,2 +1,0 @@
-# exchange rate object
-

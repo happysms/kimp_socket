@@ -9,9 +9,10 @@ import time
 class Upbit:
     exchange_name = "upbit"
     url = 'wss://api.upbit.com/websocket/v1'
-    check_ticker_list = []
     market_fee = 0
     limit_fee = 0
+    orderbook_dict = dict()
+    available_coin_list = []
 
     async def socket_order_book(self, callback):
         subscribe_items = await Upbit.get_subscribe_items()
@@ -34,7 +35,7 @@ class Upbit:
 
     @staticmethod
     def adapter_orderbook(cur_orderbook):
-        new_orderbook = dict(ticker=cur_orderbook['cd'].replace("KRW-", ""),
+        new_orderbook = dict(coin=cur_orderbook['cd'].replace("KRW-", ""),
                              time=cur_orderbook['tms'], asks=[], bids=[])
 
         for maker_order in cur_orderbook['obu']:
@@ -44,6 +45,7 @@ class Upbit:
             bid_side = maker_order['bs']
             new_orderbook["asks"].append([ask_price, ask_side])
             new_orderbook["bids"].append([bid_price, bid_side])
+            new_orderbook["bids"].sort(key=lambda x: -x[0])
 
         return new_orderbook
 
@@ -51,17 +53,10 @@ class Upbit:
         orderbook_str = args[0].decode('utf-8')
         orderbook_dict = json.loads(orderbook_str)
         updated_orderbook_dict = Upbit.adapter_orderbook(orderbook_dict)
-        pprint(updated_orderbook_dict)
-        # now = time.time()
-        # print("time_delay: ", now - t / 1000)
-        # print(orderbook_dict)
-        # orderbook = json.loads(args[0])
-        # exchange_name = args[1]
-        # print(exchange_name, orderbook)
-
+        self.orderbook_dict[updated_orderbook_dict['coin']] = updated_orderbook_dict
 
     @staticmethod
-    async def get_subscribe_items():
+    async def get_subscribe_items() -> list:
         try:
             loop = asyncio.get_event_loop()
             items = await loop.run_in_executor(None, pyupbit.get_tickers, "KRW")

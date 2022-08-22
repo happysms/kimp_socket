@@ -22,6 +22,8 @@ class BinanceFuture:
     exchange_name = "binance-future"
     url = 'wss://fstream.binance.com/stream'
     market_fee = 0.04
+    orderbook_dict = dict()
+    available_coin_list = []
 
     @staticmethod
     async def get_subscribe_items():
@@ -44,6 +46,9 @@ class BinanceFuture:
             raise
 
     async def socket_order_book(self, callback):
+        for coin in self.available_coin_list:
+            self.orderbook_dict[coin] = None
+
         coin_list = await BinanceFuture.get_subscribe_items()
         params_list = [f"{coin.lower()}usdt@depth10@500ms" for coin in coin_list]
         subscribe_fmt = {
@@ -63,7 +68,7 @@ class BinanceFuture:
         orderbook_str = json.loads(args[0])
         if "id" not in orderbook_str.keys():
             orderbook_dict = await adapter_binance_orderbook(orderbook_str)
-            print(orderbook_dict)
+            self.orderbook_dict[orderbook_dict['coin']] = orderbook_dict
 
 
 class BinanceSpot:
