@@ -102,9 +102,9 @@ class UpbitBinanceFuture:
                         upbit_premium = round((binance_short / upbit_long - 1) * 100, 3)
                         binance_premium = round((upbit_short / binance_long - 1) * 100, 3)
 
-                        if upbit_premium > 0:
+                        if 0 < upbit_premium < 10:
                             self.telegram_bot.log(f"{binance_key} 거래액: {format(trade_size, ',')}won\t 역김프: {upbit_premium}%")
-                        elif binance_premium > 4:
+                        elif 4 < binance_premium < 10:
                             self.telegram_bot.log(f"{binance_key} 거래액: {format(trade_size, ',')}\t 김프: {binance_premium}%")
 
             loop.run_in_executor(None, self.telegram_bot.send_logs)
