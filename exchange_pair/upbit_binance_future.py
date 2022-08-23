@@ -1,10 +1,14 @@
-import json
+import os
+import sys
+sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 
+import json
 from exchange.binance import BinanceFuture
 from exchange.upbit import Upbit
 import asyncio
 from aiohttp import ClientSession
 from alert.bot import TelegramBot
+
 
 
 def cal_avg_price(orderbook, trade_size):
