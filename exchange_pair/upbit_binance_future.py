@@ -94,7 +94,7 @@ class UpbitBinanceFuture:
     async def cal_kimp(self):
         while True:
             try:
-                for trade_size in [100000, 1000000, 10000000]:
+                for trade_size in [100000, 1000000]:
                     print("\n\n\n\n\ntrading size(won): ", format(trade_size, ','))
                     for binance_key in self.binance_future.orderbook_dict.keys():
                         if self.binance_future.orderbook_dict.get(binance_key) and self.upbit.orderbook_dict.get(binance_key):
