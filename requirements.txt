@@ -1,3 +1,4 @@
 websockets
 pyupbit
 ccxt
+python-telegram-bot

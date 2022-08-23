@@ -1,10 +1,10 @@
 import json
-import time
 
 from exchange.binance import BinanceFuture
 from exchange.upbit import Upbit
 import asyncio
 from aiohttp import ClientSession
+from alert.bot import TelegramBot
 
 
 def cal_avg_price(orderbook, trade_size):
@@ -59,6 +59,7 @@ class UpbitBinanceFuture:
     def __init__(self, upbit: Upbit, binance_future: BinanceFuture):
         self.upbit = upbit
         self.binance_future = binance_future
+        self.telegram_bot = TelegramBot()
 
     async def set_available_coin_list(self):
         upbit_items = await Upbit.get_subscribe_items()
@@ -98,13 +99,18 @@ class UpbitBinanceFuture:
                         binance_long, binance_short = cal_avg_price(binance_orderbook, trade_size / self.exchange_rate)
                         binance_long = binance_long * (1 + BinanceFuture.market_fee)
                         binance_short = binance_short * (1 - BinanceFuture.market_fee)
+                        upbit_premium = round((binance_short / upbit_long - 1) * 100, 3)
+                        binance_premium = round((upbit_short / binance_long - 1) * 100, 3)
 
-                        # print("upbit: ", binance_key, upbit_long, upbit_short)
-                        # print("binance: ", binance_key, binance_long, binance_short)
-                        print("upbit_long - binance_short: ", binance_key, round((binance_short / upbit_long - 1) * 100, 3))
-                        print("upbit_short - binance_long: ", binance_key, round((upbit_short / binance_long - 1) * 100, 3))
+                        if upbit_premium > 0:
+                            self.telegram_bot.log(f"{binance_key} 거래액: {format(trade_size, ',')}won\t 역김프: {upbit_premium}%")
+                        elif binance_premium > 4:
+                            self.telegram_bot.log(f"{binance_key} 거래액: {format(trade_size, ',')}\t 김프: {binance_premium}%")
 
+            loop.run_in_executor(None, self.telegram_bot.send_logs)
             await asyncio.sleep(2)
+            # print("upbit_long - binance_short: ", binance_key, upbit_premium)
+            # print("upbit_short - binance_long: ", binance_key, binance_premium)
 
 
 if "__main__" == __name__:
