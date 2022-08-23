@@ -3,8 +3,7 @@ from pprint import pprint
 import websockets
 import asyncio
 import json
-import time
-import re
+
 
 
 async def adapter_binance_orderbook(orderbook):
@@ -12,7 +11,7 @@ async def adapter_binance_orderbook(orderbook):
     orderbook = orderbook['data']
     orderbook_dict = dict()
     orderbook_dict['coin'] = coin
-    orderbook_dict['time'] = orderbook['T']
+    orderbook_dict['time'] = orderbook['T'] / 1000
     orderbook_dict['asks'] = list(map(lambda x: [float(x[0]), float(x[1]) * float(x[0])], orderbook['a']))
     orderbook_dict['bids'] = list(map(lambda x: [float(x[0]), float(x[1]) * float(x[0])], orderbook['b']))
     return orderbook_dict
@@ -21,7 +20,8 @@ async def adapter_binance_orderbook(orderbook):
 class BinanceFuture:
     exchange_name = "binance-future"
     url = 'wss://fstream.binance.com/stream'
-    market_fee = 0.04
+    market_fee = 0.0004
+    limit_fee = 0.0004
     orderbook_dict = dict()
     available_coin_list = []
 

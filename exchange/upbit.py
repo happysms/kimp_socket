@@ -9,8 +9,8 @@ import time
 class Upbit:
     exchange_name = "upbit"
     url = 'wss://api.upbit.com/websocket/v1'
-    market_fee = 0
-    limit_fee = 0
+    market_fee = 0.0005
+    limit_fee = 0.0005
     orderbook_dict = dict()
     available_coin_list = []
 
@@ -36,15 +36,15 @@ class Upbit:
     @staticmethod
     def adapter_orderbook(cur_orderbook):
         new_orderbook = dict(coin=cur_orderbook['cd'].replace("KRW-", ""),
-                             time=cur_orderbook['tms'], asks=[], bids=[])
+                             time=cur_orderbook['tms'] / 1000, asks=[], bids=[])
 
         for maker_order in cur_orderbook['obu']:
             ask_price = maker_order['ap']
             ask_side = maker_order['as']
             bid_price = maker_order['bp']
             bid_side = maker_order['bs']
-            new_orderbook["asks"].append([ask_price, ask_side])
-            new_orderbook["bids"].append([bid_price, bid_side])
+            new_orderbook["asks"].append([ask_price, ask_side * ask_price])
+            new_orderbook["bids"].append([bid_price, bid_side * bid_price])
             new_orderbook["bids"].sort(key=lambda x: -x[0])
 
         return new_orderbook
@@ -63,6 +63,7 @@ class Upbit:
             return items
         except Exception:
             raise
+
 
 
 if "__main__" == __name__:
