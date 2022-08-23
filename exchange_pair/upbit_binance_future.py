@@ -78,53 +78,69 @@ class UpbitBinanceFuture:
     async def update_exchange_rate(self):
         """5초에 한번 환율 갱신"""
         while True:
-            async with ClientSession() as session:
-                async with session.get("https://quotation-api-cdn.dunamu.com/v1/forex/recent?codes=FRX.KRWUSD") as response:
-                    r = await response.read()
-                    self.exchange_rate = json.loads(r.decode('utf-8'))[0]['basePrice']
-            await asyncio.sleep(5)
+            try:
+                async with ClientSession() as session:
+                    async with session.get("https://quotation-api-cdn.dunamu.com/v1/forex/recent?codes=FRX.KRWUSD") as response:
+                        r = await response.read()
+                        self.exchange_rate = json.loads(r.decode('utf-8'))[0]['basePrice']
+                await asyncio.sleep(5)
+            except Exception:
+                exit(0)
 
-    async def cal_spread(self):
+    async def cal_kimp(self):
         while True:
-            for trade_size in [100000, 1000000, 10000000]:
-                print("\n\n\n\n\ntrading size(won): ", format(trade_size, ','))
-                for binance_key in self.binance_future.orderbook_dict.keys():
-                    if self.binance_future.orderbook_dict.get(binance_key) and self.upbit.orderbook_dict.get(binance_key):
-                        binance_orderbook = self.binance_future.orderbook_dict[binance_key]
-                        upbit_orderbook = self.upbit.orderbook_dict[binance_key]
-                        upbit_long, upbit_short = cal_avg_price(upbit_orderbook, trade_size)
-                        upbit_long = upbit_long / self.exchange_rate * (1 + Upbit.market_fee)
-                        upbit_short = upbit_short / self.exchange_rate * (1 - Upbit.market_fee)
+            try:
+                for trade_size in [100000, 1000000, 10000000]:
+                    print("\n\n\n\n\ntrading size(won): ", format(trade_size, ','))
+                    for binance_key in self.binance_future.orderbook_dict.keys():
+                        if self.binance_future.orderbook_dict.get(binance_key) and self.upbit.orderbook_dict.get(binance_key):
+                            binance_orderbook = self.binance_future.orderbook_dict[binance_key]
+                            upbit_orderbook = self.upbit.orderbook_dict[binance_key]
+                            upbit_long, upbit_short = cal_avg_price(upbit_orderbook, trade_size)
+                            upbit_long = upbit_long / self.exchange_rate * (1 + Upbit.market_fee)
+                            upbit_short = upbit_short / self.exchange_rate * (1 - Upbit.market_fee)
 
-                        binance_long, binance_short = cal_avg_price(binance_orderbook, trade_size / self.exchange_rate)
-                        binance_long = binance_long * (1 + BinanceFuture.market_fee)
-                        binance_short = binance_short * (1 - BinanceFuture.market_fee)
-                        upbit_premium = round((binance_short / upbit_long - 1) * 100, 3)
-                        binance_premium = round((upbit_short / binance_long - 1) * 100, 3)
+                            binance_long, binance_short = cal_avg_price(binance_orderbook, trade_size / self.exchange_rate)
+                            binance_long = binance_long * (1 + BinanceFuture.market_fee)
+                            binance_short = binance_short * (1 - BinanceFuture.market_fee)
+                            upbit_premium = round((binance_short / upbit_long - 1) * 100, 3)
+                            binance_premium = round((upbit_short / binance_long - 1) * 100, 3)
 
-                        if 0 < upbit_premium < 10:
-                            self.telegram_bot.log(f"{binance_key} 거래액: {format(trade_size, ',')}won\t 역김프: {upbit_premium}%")
-                        elif 4 < binance_premium < 10:
-                            self.telegram_bot.log(f"{binance_key} 거래액: {format(trade_size, ',')}\t 김프: {binance_premium}%")
+                            if 0 < upbit_premium < 10:
+                                self.telegram_bot.log(f"{binance_key} 거래액: {format(trade_size, ',')}won\t 역김프: {upbit_premium}%")
+                            elif 4 < binance_premium < 10:
+                                self.telegram_bot.log(f"{binance_key} 거래액: {format(trade_size, ',')}\t 김프: {binance_premium}%")
 
-            loop.run_in_executor(None, self.telegram_bot.send_logs)
-            await asyncio.sleep(2)
+                loop.run_in_executor(None, self.telegram_bot.send_logs)
+                await asyncio.sleep(2)
+            except Exception:
+                exit(0)
             # print("upbit_long - binance_short: ", binance_key, upbit_premium)
             # print("upbit_short - binance_long: ", binance_key, binance_premium)
 
+    async def health_check(self):
+        while True:
+            self.telegram_bot.log("health_check")
+            loop.run_in_executor(None, self.telegram_bot.send_logs)
+            await asyncio.sleep(10800)  # 3 hour
+
 
 if "__main__" == __name__:
-    binance_future = BinanceFuture()
-    upbit = Upbit()
-    upbit_binance_future_obj = UpbitBinanceFuture(upbit=upbit, binance_future=binance_future)
+    try:
+        binance_future = BinanceFuture()
+        upbit = Upbit()
+        upbit_binance_future_obj = UpbitBinanceFuture(upbit=upbit, binance_future=binance_future)
 
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(upbit_binance_future_obj.set_available_coin_list())
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(upbit_binance_future_obj.set_available_coin_list())
 
-    tasks = [asyncio.ensure_future(upbit.socket_order_book(upbit.process_buffer)),
-             asyncio.ensure_future(binance_future.socket_order_book(binance_future.process_buffer)),
-             asyncio.ensure_future(upbit_binance_future_obj.cal_spread()),
-             asyncio.ensure_future(upbit_binance_future_obj.update_exchange_rate())]
+        tasks = [asyncio.ensure_future(upbit.socket_order_book(upbit.process_buffer)),
+                 asyncio.ensure_future(binance_future.socket_order_book(binance_future.process_buffer)),
+                 asyncio.ensure_future(upbit_binance_future_obj.cal_kimp()),
+                 asyncio.ensure_future(upbit_binance_future_obj.update_exchange_rate()),
+                 asyncio.ensure_future(upbit_binance_future_obj.health_check())]
 
-    loop.run_until_complete(asyncio.wait(tasks))
+        loop.run_until_complete(asyncio.wait(tasks))
+    except Exception:
+        exit(0)
 
