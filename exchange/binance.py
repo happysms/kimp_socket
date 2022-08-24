@@ -5,7 +5,6 @@ import asyncio
 import json
 
 
-
 async def adapter_binance_orderbook(orderbook):
     coin = orderbook['stream'][: orderbook['stream'].find("usdt")].upper()
     orderbook = orderbook['data']
@@ -25,21 +24,22 @@ class BinanceFuture:
     orderbook_dict = dict()
     available_coin_list = []
 
-    @staticmethod
-    async def get_subscribe_items():
-        try:
-            exchange_obj = ccxt.binance(config={'enableRateLimit': True,
+    def __init__(self):
+        self.binance_obj = ccxt.binance(config={'enableRateLimit': True,
                                                 'options': {
                                                             'defaultType': "future"}
                                                 })
-            markets = await exchange_obj.fetch_markets()
+
+    async def get_subscribe_items(self):
+        try:
+            markets = await self.binance_obj.fetch_markets()
             coin_list = []
 
             for coin in markets:
                 if coin['id'].find("USDT") != -1:
                     coin_list.append(coin['id'].replace("USDT", "").replace("_220930", ""))
             coin_list = list(set(coin_list))
-            await exchange_obj.close()
+            await self.binance_obj.close()
             return coin_list
 
         except Exception:
@@ -49,7 +49,7 @@ class BinanceFuture:
         for coin in self.available_coin_list:
             self.orderbook_dict[coin] = None
 
-        coin_list = await BinanceFuture.get_subscribe_items()
+        coin_list = await self.get_subscribe_items()
         params_list = [f"{coin.lower()}usdt@depth10@500ms" for coin in coin_list]
         subscribe_fmt = {
                             "method": "SUBSCRIBE",
@@ -69,6 +69,12 @@ class BinanceFuture:
         if "id" not in orderbook_str.keys():
             orderbook_dict = await adapter_binance_orderbook(orderbook_str)
             self.orderbook_dict[orderbook_dict['coin']] = orderbook_dict
+
+    async def buy_order(self, ticker, amount):
+        await self.binance_obj.create_market_buy_order(symbol=ticker, amount=amount)
+
+    async def sell_order(self, ticker, amount):
+        await self.binance_obj.create_market_buy_order(symbol=ticker, amount=amount)
 
 
 class BinanceSpot:

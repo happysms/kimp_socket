@@ -1,9 +1,15 @@
-from pprint import pprint
 import websockets
 import pyupbit
 import asyncio
 import json
-import time
+import jwt
+import hashlib
+import os
+import requests
+import uuid
+from urllib.parse import urlencode, unquote
+import env
+from aiohttp import ClientSession
 
 
 class Upbit:
@@ -13,6 +19,9 @@ class Upbit:
     limit_fee = 0.0005
     orderbook_dict = dict()
     available_coin_list = []
+    access_key = env.UPBIT_ACCESS_KEY
+    secret_key = env.UPBIT_SECRET_KEY
+    server_url = "https://api.upbit.com"
 
     async def socket_order_book(self, callback):
         subscribe_items = await Upbit.get_subscribe_items()
@@ -64,6 +73,69 @@ class Upbit:
         except Exception:
             raise
 
+    async def buy_order(self, ticker, amount):
+        params = {
+            'market': ticker,
+            'ord_type': 'price',
+            'side': 'bid',
+            'price': str(amount)
+        }
+        query_string = unquote(urlencode(params, doseq=True)).encode("utf-8")
+        m = hashlib.sha512()
+        m.update(query_string)
+        query_hash = m.hexdigest()
+
+        payload = {
+            'access_key': self.access_key,
+            'nonce': str(uuid.uuid4()),
+            'query_hash': query_hash,
+            'query_hash_alg': 'SHA512',
+        }
+
+        jwt_token = jwt.encode(payload, self.secret_key)
+        authorization = 'Bearer {}'.format(jwt_token)
+        headers = {
+            'Authorization': authorization,
+        }
+
+        async with ClientSession() as session:
+            async with session.post(self.server_url + '/v1/orders', json=params, headers=headers) as response:
+                r = await response.read()
+
+        return r
+
+    async def sell_order(self, ticker, price, amount):
+        params = {
+            'market': ticker,
+            'ord_type': 'market',
+            'side': 'ask',
+            'volume': str(amount / price),
+            'price': str(amount)
+        }
+
+        query_string = unquote(urlencode(params, doseq=True)).encode("utf-8")
+        m = hashlib.sha512()
+        m.update(query_string)
+        query_hash = m.hexdigest()
+
+        payload = {
+            'access_key': self.access_key,
+            'nonce': str(uuid.uuid4()),
+            'query_hash': query_hash,
+            'query_hash_alg': 'SHA512',
+        }
+
+        jwt_token = jwt.encode(payload, self.secret_key)
+        authorization = 'Bearer {}'.format(jwt_token)
+        headers = {
+            'Authorization': authorization,
+        }
+
+        async with ClientSession() as session:
+            async with session.post(self.server_url + '/v1/orders', json=params, headers=headers) as response:
+                r = await response.read()
+
+        return r
 
 
 if "__main__" == __name__:
