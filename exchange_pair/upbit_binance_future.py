@@ -1,5 +1,7 @@
 import os
 import sys
+from pprint import pprint
+
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 
 import json
@@ -8,7 +10,6 @@ from exchange.upbit import Upbit
 import asyncio
 from aiohttp import ClientSession
 from alert.bot import TelegramBot
-
 
 
 def cal_avg_price(orderbook, trade_size):
@@ -34,6 +35,9 @@ def cal_avg_price(orderbook, trade_size):
         else:
             long_avg_price += (amount / trade_size) * price
 
+        if idx == len(asks) - 1 and ask_amount <= trade_size:
+            long_avg_price = 1e12
+
     bids = orderbook['bids']
     bid_amount = 0
     short_avg_price = 0
@@ -49,6 +53,9 @@ def cal_avg_price(orderbook, trade_size):
             break
         else:
             short_avg_price += (amount / trade_size) * price
+
+        if idx == len(bids) - 1 and bid_amount <= trade_size:
+            short_avg_price = -1e12
 
     return long_avg_price, short_avg_price
 
@@ -94,21 +101,29 @@ class UpbitBinanceFuture:
     async def cal_kimp(self):
         while True:
             try:
-                for trade_size in [100000, 1000000]:
+                for trade_size in [1000000, 10000000]:
                     print("\n\n\n\n\ntrading size(won): ", format(trade_size, ','))
                     for binance_key in self.binance_future.orderbook_dict.keys():
                         if self.binance_future.orderbook_dict.get(binance_key) and self.upbit.orderbook_dict.get(binance_key):
+
                             binance_orderbook = self.binance_future.orderbook_dict[binance_key]
                             upbit_orderbook = self.upbit.orderbook_dict[binance_key]
                             upbit_long, upbit_short = cal_avg_price(upbit_orderbook, trade_size)
+                            if upbit_long > 1e10 or upbit_short < -1e10:
+                                continue
+
                             upbit_long = upbit_long / self.exchange_rate * (1 + Upbit.market_fee)
                             upbit_short = upbit_short / self.exchange_rate * (1 - Upbit.market_fee)
-
                             binance_long, binance_short = cal_avg_price(binance_orderbook, trade_size / self.exchange_rate)
+                            if binance_long > 1e10 or binance_short < -1e10:
+                                continue
+
                             binance_long = binance_long * (1 + BinanceFuture.market_fee)
                             binance_short = binance_short * (1 - BinanceFuture.market_fee)
                             upbit_premium = round((binance_short / upbit_long - 1) * 100, 3)
                             binance_premium = round((upbit_short / binance_long - 1) * 100, 3)
+                            print("upbit_long - binance_short: ", binance_key, upbit_premium)
+                            print("upbit_short - binance_long: ", binance_key, binance_premium)
 
                             if 0 < upbit_premium < 10:
                                 self.telegram_bot.log(f"{binance_key} 거래액: {format(trade_size, ',')}won\t 역김프: {upbit_premium}%")
@@ -119,8 +134,6 @@ class UpbitBinanceFuture:
                 await asyncio.sleep(2)
             except Exception:
                 exit(0)
-            # print("upbit_long - binance_short: ", binance_key, upbit_premium)
-            # print("upbit_short - binance_long: ", binance_key, binance_premium)
 
     async def health_check(self):
         while True:
@@ -143,8 +156,8 @@ if "__main__" == __name__:
                  asyncio.ensure_future(upbit_binance_future_obj.cal_kimp()),
                  asyncio.ensure_future(upbit_binance_future_obj.update_exchange_rate()),
                  asyncio.ensure_future(upbit_binance_future_obj.health_check())]
-
         loop.run_until_complete(asyncio.wait(tasks))
+
     except Exception:
         exit(0)
 
