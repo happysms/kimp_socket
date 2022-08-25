@@ -1,5 +1,5 @@
 import telegram as tel
-from env import TELEGRAM_TOKEN, CHAT_ID
+from env import TELEGRAM_TOKEN
 
 
 class TelegramBot:
@@ -24,7 +24,7 @@ class TelegramBot:
         else:
             full_msg = f"""{joined_log}"""
 
-        self.bot.sendMessage(chat_id=CHAT_ID, text=full_msg)
+        self.bot.sendMessage(chat_id=self.chat_id, text=full_msg)
         self.log_queue = []
 
 
