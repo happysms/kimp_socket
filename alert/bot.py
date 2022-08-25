@@ -26,3 +26,8 @@ class TelegramBot:
         self.bot.sendMessage(chat_id=CHAT_ID, text=full_msg)
         self.log_queue = []
 
+
+if "__main__" == __name__:
+    telegram_bot = TelegramBot()
+    telegram_bot.log("qve to the moon")
+    telegram_bot.send_logs()

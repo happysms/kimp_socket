@@ -74,7 +74,7 @@ class UpbitBinanceFuture:
     async def set_available_coin_list(self):
         upbit_items = await Upbit.get_subscribe_items()
         upbit_items = list(map(lambda x: x.replace("KRW-", ""), upbit_items))
-        binance_future_items = await BinanceFuture.get_subscribe_items()
+        binance_future_items = await self.binance_future.get_subscribe_items()
 
         for upbit_item in upbit_items:
             for binance_future_item in binance_future_items:
