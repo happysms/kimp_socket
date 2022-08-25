@@ -3,9 +3,10 @@ from env import TELEGRAM_TOKEN, CHAT_ID
 
 
 class TelegramBot:
-    def __init__(self):
+    def __init__(self, chat_id):
         self.bot = tel.Bot(token=TELEGRAM_TOKEN)
         self.log_queue = []
+        self.chat_id = chat_id
 
     def log(self, msg):
         self.log_queue.append(str(msg))
@@ -28,6 +29,6 @@ class TelegramBot:
 
 
 if "__main__" == __name__:
-    telegram_bot = TelegramBot()
+    telegram_bot = TelegramBot(chat_id=-1001598345034)
     telegram_bot.log("qve to the moon")
     telegram_bot.send_logs()

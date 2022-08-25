@@ -1,5 +1,6 @@
 import os
 import sys
+import env
 
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 
@@ -69,7 +70,7 @@ class UpbitBinanceFuture:
     def __init__(self, upbit: Upbit, binance_future: BinanceFuture):
         self.upbit = upbit
         self.binance_future = binance_future
-        self.telegram_bot = TelegramBot()
+        self.telegram_bot = TelegramBot(chat_id=env.UPBIT_CHAT_ID)
 
     async def set_available_coin_list(self):
         upbit_items = await Upbit.get_subscribe_items()
