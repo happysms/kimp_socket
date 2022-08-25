@@ -1,9 +1,9 @@
 import os
 import sys
-import env
 
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 
+import env
 import json
 from exchange.binance import BinanceFuture
 from exchange.upbit import Upbit

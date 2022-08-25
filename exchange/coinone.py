@@ -1,8 +1,5 @@
 import asyncio
-import time
-
 import ccxt.async_support as ccxt
-from pprint import pprint
 
 
 def adapter_coinone_orderbook(orderbook):
