@@ -1,4 +1,6 @@
 import asyncio
+import time
+
 import ccxt.async_support as ccxt
 from pprint import pprint
 
@@ -16,6 +18,8 @@ class Coinone:
     exchange_name = "coinone"
     orderbook_dict = dict()
     available_coin_list = []
+    market_fee = 0.002
+    limit_fee = 0.002
 
     def __init__(self):
         self.coinone_obj = ccxt.coinone()
@@ -26,10 +30,8 @@ class Coinone:
                 ticker = f"{coin}/KRW"
                 orderbook = await self.get_orderbook(ticker=ticker)
                 orderbook_dict = adapter_coinone_orderbook(orderbook)
-                pprint(orderbook_dict)
-
-            await asyncio.sleep(0.5)
-        pass
+                self.orderbook_dict[orderbook_dict['coin']] = orderbook_dict
+            await asyncio.sleep(0.1)
 
     async def get_orderbook(self, ticker):
         orderbook = await self.coinone_obj.fetch_order_book(symbol=ticker, limit=10)
