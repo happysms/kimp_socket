@@ -29,6 +29,6 @@ class TelegramBot:
 
 
 if "__main__" == __name__:
-    telegram_bot = TelegramBot(chat_id=-1001598345034)
+    telegram_bot = TelegramBot(chat_id=-1001564791306)
     telegram_bot.log("qve to the moon")
     telegram_bot.send_logs()

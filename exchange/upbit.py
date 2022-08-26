@@ -4,8 +4,6 @@ import asyncio
 import json
 import jwt
 import hashlib
-import os
-import requests
 import uuid
 from urllib.parse import urlencode, unquote
 import env

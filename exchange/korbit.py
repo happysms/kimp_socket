@@ -22,6 +22,7 @@ def adapter_korbit_orderbook(orderbook_dict):
     else:
         return None
 
+
 class Korbit:
     exchange_name = "korbit"
     url = "wss://ws.korbit.co.kr/v1/user/push"
@@ -57,7 +58,8 @@ class Korbit:
     async def process_buffer(self, *args, **kwargs):
         orderbook_dict = json.loads(args[0])
         updated_orderbook_dict = adapter_korbit_orderbook(orderbook_dict)
-        self.orderbook_dict[updated_orderbook_dict['coin']] = updated_orderbook_dict
+        if updated_orderbook_dict:
+            self.orderbook_dict[updated_orderbook_dict['coin']] = updated_orderbook_dict
 
     @staticmethod
     async def get_subscribe_items() -> list:
