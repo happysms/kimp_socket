@@ -90,6 +90,7 @@ class CoinoneBinanceFuture:
         """5초에 한번 환율 갱신"""
         while True:
             try:
+                print(self.exchange_rate)
                 async with ClientSession() as session:
                     async with session.get("https://quotation-api-cdn.dunamu.com/v1/forex/recent?codes=FRX.KRWUSD") as response:
                         r = await response.read()
@@ -97,6 +98,7 @@ class CoinoneBinanceFuture:
                 await asyncio.sleep(5)
             except Exception:
                 exit(0)
+
 
     async def cal_kimp(self):
         while True:
@@ -125,10 +127,10 @@ class CoinoneBinanceFuture:
                             print("coinone_long - binance_short: ", binance_key, upbit_premium)
                             print("coinone_short - binance_long: ", binance_key, binance_premium)
 
-                            if 0 < upbit_premium < 10:
-                                self.telegram_bot.log(f"{binance_key} 거래액: {format(trade_size, ',')}won\t 역김프: {upbit_premium}%")
-                            elif 4 < binance_premium < 10:
-                                self.telegram_bot.log(f"{binance_key} 거래액: {format(trade_size, ',')}\t 김프: {binance_premium}%")
+                            # if 0 < upbit_premium < 10:
+                            #     self.telegram_bot.log(f"{binance_key} 거래액: {format(trade_size, ',')}won\t 역김프: {upbit_premium}%")
+                            # elif 4 < binance_premium < 10:
+                            #     self.telegram_bot.log(f"{binance_key} 거래액: {format(trade_size, ',')}\t 김프: {binance_premium}%")
 
                 loop.run_in_executor(None, self.telegram_bot.send_logs)
                 await asyncio.sleep(1)
@@ -137,8 +139,8 @@ class CoinoneBinanceFuture:
 
     async def health_check(self):
         while True:
-            self.telegram_bot.log("health_check")
-            loop.run_in_executor(None, self.telegram_bot.send_logs)
+            # self.telegram_bot.log("health_check")
+            # loop.run_in_executor(None, self.telegram_bot.send_logs)
             await asyncio.sleep(10800)  # 3 hour
 
 
