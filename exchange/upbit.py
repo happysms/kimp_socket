@@ -8,6 +8,7 @@ import uuid
 from urllib.parse import urlencode, unquote
 import env
 from aiohttp import ClientSession
+import ccxt.async_support as ccxt
 
 
 class Upbit:
@@ -21,8 +22,11 @@ class Upbit:
     secret_key = env.UPBIT_SECRET_KEY
     server_url = "https://api.upbit.com"
 
+    def __init__(self):
+        self.upbit_obj = ccxt.upbit()
+
     async def socket_order_book(self, callback):
-        subscribe_items = await Upbit.get_subscribe_items()
+        subscribe_items = list(map(lambda x: "KRW-" + x, self.available_coin_list))
         subscribe_fmt = [
             {"ticket": "test-websocket"},
             {
@@ -62,14 +66,10 @@ class Upbit:
         updated_orderbook_dict = Upbit.adapter_orderbook(orderbook_dict)
         self.orderbook_dict[updated_orderbook_dict['coin']] = updated_orderbook_dict
 
-    @staticmethod
-    async def get_subscribe_items() -> list:
-        try:
-            loop = asyncio.get_event_loop()
-            items = await loop.run_in_executor(None, pyupbit.get_tickers, "KRW")
-            return items
-        except Exception:
-            raise
+    async def get_subscribe_items(self) -> list:
+        markets = await self.upbit_obj.load_markets()
+        coin_list = list(map(lambda x: x.replace("/KRW", ""), markets.keys()))
+        return coin_list
 
     async def buy_order(self, ticker, amount):
         params = {
