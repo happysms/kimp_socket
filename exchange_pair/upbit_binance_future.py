@@ -21,9 +21,6 @@ class UpbitBinanceFuture:
     binance_future_orderbook_list = []
     kimp_status_dict = {}
 
-    # {"BTC": {"time_diff": 1.4, "kimp": 4.2, "is_active": False}}
-    # action: 4퍼 이상 상승 시 is_updated 를 True 로 바꿈 -> 다시 4퍼 아래로 내려갈 때 is_updated 를 False 로 변경
-
     def __init__(self, upbit: Upbit, binance_future: BinanceFuture):
         self.upbit = upbit
         self.binance_future = binance_future
@@ -77,7 +74,6 @@ class UpbitBinanceFuture:
     async def cal_kimp(self):
         while True:
             try:
-                print(self.kimp_status_dict)
                 for trade_size in [1000000]:
                     print("\n\n\n\n\ntrading size(won): ", format(trade_size, ','))
                     cur_time = time.time()
