@@ -13,7 +13,7 @@ from alert.bot import TelegramBot
 class KorbitBinanceFuture(ExchangePair):
     def __init__(self, korbit: Korbit, binance_future: BinanceFuture):
         super().__init__(korbit, binance_future)
-        self.telegram_bot = TelegramBot(chat_id=env.UPBIT_CHAT_ID)
+        self.telegram_bot = TelegramBot(chat_id=env.KORBIT_CHAT_ID)
         self.won_exchange_fee = korbit.market_fee
         self.dollar_exchange_fee = binance_future.market_fee
 

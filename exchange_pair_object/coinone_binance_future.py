@@ -13,7 +13,7 @@ from alert.bot import TelegramBot
 class CoinoneBinanceFuture(ExchangePair):
     def __init__(self, coinone: Coinone, binance_future: BinanceFuture):
         super().__init__(coinone, binance_future)
-        self.telegram_bot = TelegramBot(chat_id=env.UPBIT_CHAT_ID)
+        self.telegram_bot = TelegramBot(chat_id=env.COINONE_CHAT_ID)
         self.won_exchange_fee = coinone.market_fee
         self.dollar_exchange_fee = binance_future.market_fee
 
