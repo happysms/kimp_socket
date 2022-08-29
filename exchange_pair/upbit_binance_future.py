@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 
@@ -18,11 +19,33 @@ class UpbitBinanceFuture:
     exchange_rate = 0
     upbit_orderbook_list = []
     binance_future_orderbook_list = []
+    kimp_status_dict = {}
+
+    # {"BTC": {"time_diff": 1.4, "kimp": 4.2, "is_active": False}}
+    # action: 4퍼 이상 상승 시 is_updated 를 True 로 바꿈 -> 다시 4퍼 아래로 내려갈 때 is_updated 를 False 로 변경
 
     def __init__(self, upbit: Upbit, binance_future: BinanceFuture):
         self.upbit = upbit
         self.binance_future = binance_future
         self.telegram_bot = TelegramBot(chat_id=env.UPBIT_CHAT_ID)
+
+    def alert_info(self, coin, kimp, time_diff1, time_diff2):
+        coin_info = self.kimp_status_dict[coin]
+        if coin_info["is_active"]:
+            if 0 < kimp < 4:
+                self.kimp_status_dict[coin]["is_active"] = False
+                self.kimp_status_dict[coin]["kimp"] = kimp
+                self.kimp_status_dict[coin]["time_diff1"] = time_diff1
+                self.kimp_status_dict[coin]["time_diff2"] = time_diff2
+        else:
+            if kimp <= 0 or kimp >= 4:
+                self.kimp_status_dict[coin]["is_active"] = True
+                self.kimp_status_dict[coin]["kimp"] = kimp
+                self.kimp_status_dict[coin]["time_diff1"] = time_diff1
+                self.kimp_status_dict[coin]["time_diff2"] = time_diff2
+                log = f"종목: {coin}\t  김프: {kimp:.2f}%\t  환율:{self.exchange_rate}\t  time_delay: ({time_diff1:.2f},{time_diff2:.2f})"
+                self.telegram_bot.log(log)
+                self.telegram_bot.send_logs()
 
     async def set_available_coin_list(self):
         upbit_items = await Upbit.get_subscribe_items()
@@ -33,6 +56,7 @@ class UpbitBinanceFuture:
             for binance_future_item in binance_future_items:
                 if upbit_item == binance_future_item:
                     self.available_coin_list.append(upbit_item)
+                    self.kimp_status_dict[upbit_item] = {"time_diff1": None, "time_diff2": None, "kimp": None, "is_active": False}
                     continue
 
         self.binance_future.available_coin_list = self.available_coin_list
@@ -53,13 +77,17 @@ class UpbitBinanceFuture:
     async def cal_kimp(self):
         while True:
             try:
-                for trade_size in [1000000, 10000000]:
+                print(self.kimp_status_dict)
+                for trade_size in [1000000]:
                     print("\n\n\n\n\ntrading size(won): ", format(trade_size, ','))
+                    cur_time = time.time()
                     for binance_key in self.binance_future.orderbook_dict.keys():
                         if self.binance_future.orderbook_dict.get(binance_key) and self.upbit.orderbook_dict.get(binance_key):
-
                             binance_orderbook = self.binance_future.orderbook_dict[binance_key]
                             upbit_orderbook = self.upbit.orderbook_dict[binance_key]
+                            binance_time_diff = cur_time - binance_orderbook['time']
+                            upbit_time_diff = cur_time - upbit_orderbook['time']
+
                             upbit_long, upbit_short = cal_avg_price(upbit_orderbook, trade_size)
                             if upbit_long > 1e10 or upbit_short < -1e10:
                                 continue
@@ -78,13 +106,13 @@ class UpbitBinanceFuture:
                             print("upbit_short - binance_long: ", binance_key, binance_premium)
 
                             if 0 < upbit_premium < 10:
-                                self.telegram_bot.log(f"{binance_key} 거래액: {format(trade_size, ',')}won\t 역김프: {upbit_premium}%")
+                                self.alert_info(binance_key, upbit_premium, binance_time_diff, upbit_time_diff)
+                                pass
                             elif 4 < binance_premium < 10:
-                                self.telegram_bot.log(f"{binance_key} 거래액: {format(trade_size, ',')}\t 김프: {binance_premium}%")
-
-                loop.run_in_executor(None, self.telegram_bot.send_logs)
+                                self.alert_info(binance_key, binance_premium, binance_time_diff, upbit_time_diff)
                 await asyncio.sleep(2)
-            except Exception:
+            except Exception as e:
+                print(e)
                 exit(0)
 
     async def health_check(self):
