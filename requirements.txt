@@ -5,3 +5,6 @@ python-telegram-bot
 PyQt5
 PyQtChart
 pykorbit
+uvicorn
+fastapi
+python-mf-data[rdb]
